@@ -1,0 +1,238 @@
+%% Copernicus Publications Manuscript Preparation Template for LaTeX Submissions
+%% ---------------------------------
+%% This template should be used for the following class files: copernicus.cls, copernicus2.cls, copernicus_discussions.cls
+%% The class files, the Copernicus LaTeX Manual with detailed explanations regarding the comments
+%% and some style files are bundled in the Copernicus Latex Package which can be downloaded from the different journal webpages.
+%% For further assistance please contact the Publication Production Office (production@copernicus.org).
+%% http://publications.copernicus.org
+
+
+%% Differing commands regarding the specific class files are highlighted.
+
+
+%% copernicus.cls
+%\documentclass[gmd]{copernicus}
+
+%% copernicus2.cls
+%\documentclass[gmd]{copernicus2}
+
+%% copernicus_discussions.cls
+\documentclass[gmdd, hvmath, online]{copernicus_discussions}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{natbib}
+\usepackage{wrapfig}
+\usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{setspace}
+\usepackage{comment}
+\usepackage{color}
+
+% Custom commands
+\newcommand{\vb}{\mathbf}
+\newcommand{\vg}{\boldsymbol}
+\newcommand{\mat}{\mathsf}
+\newcommand{\diff}[2]{\frac{d #1}{d #2}}
+\newcommand{\diffsq}[2]{\frac{d^2 #1}{{d #2}^2}}
+\newcommand{\pdiff}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\pdiffsq}[2]{\frac{\partial^2 #1}{{\partial #2}^2}}
+
+
+\begin{document}
+
+\linenumbers
+
+\title{Tempest: A High-order Block-Structured Atmospheric Modeling Framework}
+
+
+\author{P.~A.~Ullrich}
+
+\affil{Department of Land, Air and Water Resources, University of California, Davis, One Shields Ave., Davis, CA 95616.  Email: paullrich@ucdavis.edu}
+
+%% The [] brackets identify the author to the corresponding affiliation, 1, 2, 3, etc. should be inserted.
+
+
+
+\runningtitle{Tempest: A High-order Block-Structured Atmospheric ...}
+
+\runningauthor{P.~A.~Ullrich}
+
+\correspondence{Paul Ullrich\\ (paullrich@ucdavis.edu)}
+
+
+
+\received{}
+\pubdiscuss{} %% only important for two-stage journals
+\revised{}
+\accepted{}
+\published{}
+
+%% These dates will be inserted by the Publication Production Office during the typesetting process.
+
+
+\firstpage{1}
+
+\maketitle  %% Please note that for the copernicus2.cls this command needs to be inserted after \abstract{TEXT}
+
+
+
+\begin{abstract}
+TEXT
+\end{abstract}
+
+
+%% only used for copernicus2.cls
+%\abstract{
+% TEXT
+% \keywords{TEXT}}
+
+
+
+\introduction  %% \introduction[modified heading if necessary]
+TEXT
+
+
+
+\section{The non-hydrostatic equations of fluid motion}
+
+Traditional global atmospheric models use the hydrostatic approximation, which assumes that the vertical atmosphere is perpetually in a state of balance between pressure gradient and buoyancy forces.  In this case, vertical momentum is no longer tracked and is instead diagnosed from other state variables.  However, this approximation breaks down when the horizontal resolution is finer than roughly $10\ \mbox{km}$, and so the next-generation of global atmospheric models have instead turned to using the non-hydrostatic Euler equations.  These equations, with shallow-atmosphere approximation enforced, can be written in an arbitrary coordinate frame as follows:
+\begin{align}
+\label{eq:NonhydroEqn1} \pdiff{u^\alpha}{t} + u^i \nabla_i u^\alpha + \theta g^{\alpha i} \nabla_i \Pi + f (\vb{k} \times \vb{u})^\alpha &= 0, \\
+\label{eq:NonhydroEqn2} \pdiff{u^\beta}{t} + u^i \nabla_i u^\beta + \theta g^{\beta i} \nabla_i \Pi + f (\vb{k} \times \vb{u})^\beta &= 0, \\
+\label{eq:NonhydroEqn3} \pdiff{\theta}{t} + u^\alpha \pdiff{\theta}{\alpha} + u^\beta \pdiff{\theta}{\beta} &= - u^\xi \pdiff{\theta}{\xi}, \\
+\label{eq:NonhydroEqn4} \pdiff{w}{t} + u^\alpha \nabla_\alpha w + u^\beta \nabla_\beta w + u^\xi \nabla_\xi w &= - \theta \left( \pdiff{r}{\xi} \right)^{-1} \pdiff{\Pi}{\xi} - g_c, \\
+\label{eq:NonhydroEqn5} \pdiff{\rho}{t} + \frac{1}{J} \pdiff{}{\alpha} (J \rho u^\alpha) + \frac{1}{J} \pdiff{}{\beta} (J \rho u^\beta) &= - \frac{1}{J} \pdiff{}{\xi} (J \rho u^\xi),
+\end{align} where the coordinate velocity $u^\xi$ is given by
+\begin{equation} \label{eq:NonhydroCoordinateVelocity}
+u^\xi(w, u^\alpha, u^\beta) = \left( \pdiff{r}{\xi} \right)^{-1} \left[w - \left( \pdiff{r}{\alpha} \right)^{-1} u^\alpha - \left( \pdiff{r}{\beta} \right)^{-1} u^\beta \right].
+\end{equation}  Here $\alpha$ and $\beta$ are arbitrary horizontal coordinates with basis vectors $\vb{g}_\alpha$ and $\vb{g}_\beta$, $\xi$ is a vertical coordinate with basis vector $\vb{g}_\xi$ (which is perpendicular to surfaces of constant $\xi$), $r = r(\alpha, \beta, \xi)$ is the radius in physical coordinates of a point $(\alpha, \beta, \xi)$ with radial unit vector $\vb{k}$, $g^{ij}$ denotes the contravariant metric, $J = \sqrt{\det g_{ij}}$ is the metric Jacobian, $g_c$ is gravity, $f$ is the Coriolis parameter, $\rho$ is the density, $\vb{u} = u^\alpha \vb{g}_\alpha + u^\beta \vb{g}_\beta + u^\xi \vb{g}_\xi$ is the vector velocity, $\theta$ is the potential temperature and $\Pi$ is the Exner pressure.  Einstein summation notation (implied summation) is used for repeated indices.  These equations make use of the covariant derivative $\nabla_i$, which can be expanded as
+\begin{align}
+g^{j i} \nabla_i \Pi &= g^{j \alpha} \left( \pdiff{\Pi}{\alpha} \right) + g^{j \beta} \left( \pdiff{\Pi}{\beta} \right) + g^{j \xi} \left( \pdiff{\Pi}{\xi} \right), \\
+u^i \nabla_i u^j &= u^\alpha \left( \pdiff{u^j}{\alpha} \right) + u^\beta \left( \pdiff{u^j}{\beta} \right) + u^\xi \left( \pdiff{u^j}{\xi} \right) + \Gamma^{j}_{\ i k} u^i u^k, \\
+u^i \nabla_i w &= u^\alpha \left( \pdiff{w}{\alpha} \right) + u^\beta \left( \pdiff{w}{\beta} \right) + u^\xi \left( \pdiff{w}{\xi} \right) + \Gamma^r_{\ i k} u^i u^k,
+\end{align} where $\Gamma^j_{\ i k}$ denotes the Christoffel symbols of the second kind associated with the coordinate transform (again with summation over repeated indices $i$ and $k$ implied).  Further, the Coriolis term can be written
+\begin{equation}
+(\vb{k} \times \vb{u})^\alpha = ?
+\end{equation}  The non-hydrostatic equations are closed via the equation of state
+\begin{equation}
+\Pi(\rho, \theta) = c_p \left( \frac{R \rho \theta}{p_0} \right)^{R/c_v}
+\end{equation} where $R_d$ is the ideal gas constant, $p_0$ is a reference pressure and $c_p$ and $c_v$ denote the specific heat capacity of dry air at constant pressure and constant volume.  Observe that (\ref{eq:NonhydroEqn1})-(\ref{eq:NonhydroEqn4}) are given in a non-conservative form; this formulation is generally desirable over the conservative formulation (where momentum and $\rho \theta$ are prognostic variables) since this form can more readily conserve quantities relevant to atmospheric motion, such as angular momentum and potential enstrophy, and (depending on the discretization) can lead to a more accurate treatment of wave-like motions \citep{JTTJW2005JCP}.
+
+For simplicity, the equations above use $w$ as a prognostic variable in place of $u^\xi$.  This choice has the advantage of avoiding several complicated metric terms which arise in the evolution equation of $u^\xi$, at the cost of introducing an additional diagnostic equation for the coordinate velocity (\ref{eq:NonhydroCoordinateVelocity}).  Further, this choice allows us to exploit that fact that $\Gamma^r_{\ i k} = 0$ for equiangular coordinates under the shallow-atmosphere approximation.
+
+To account for topography, terrain-following $\sigma$-coordinates are imposed by defining the radius $r = r(\alpha, \beta, \xi)$ so that $r(\alpha, \beta, 0)$ is coincident with the surface.  For example, \cite{TGCRCJS1975JCP} coordinates arise from the choice
+\begin{equation}
+r(\alpha, \beta, \xi) = \xi \left[ z_{top} - z_s(\alpha, \beta) \right] + a + z_s(\alpha, \beta),
+\end{equation} where $a$ is the radius of the Earth, $z_{top}$ denotes the model height and $z_s(\alpha, \beta)$ denotes the surface elevation.
+
+\section{Nodal finite element discretization}
+
+The tensor-product basis is
+\begin{equation} \label{eq:TensorProductBasis}
+\phi_{(i,j)}(\alpha, \beta) = \tilde{\phi}_{(i)}(\alpha) \tilde{\phi}_{(j)}(\beta),
+\end{equation} where $\tilde{\phi}_{(i)}(x)$ denotes the usual 1D GLL basis function at node $i \in (0, \ldots, n_p)$ with weight
+\begin{equation}
+w_i = \int_{-1}^{1} \tilde{\phi}_{(i)}(x) dx.
+\end{equation}  For vector fields, the components of the covariant vector field are given by the tensor-product basis (\ref{eq:TensorProductBasis}).
+
+\subsection{Spectral Element Hyperviscosity}
+
+\subsubsection{Scalar Hyperviscosity}
+
+Fourth-order scalar hyperviscosity is implemented using a two stage procedure:
+\begin{align}
+f &= \mathcal{H}(1) \psi^n, \\
+\psi^{n+1} &= \psi^n - \Delta t \mathcal{H}(\nu) f.
+\end{align}  The hyperdiffusion operator is defined implicitly via
+\begin{align}
+f = \mathcal{H}(\nu) \psi \quad \Longleftrightarrow \quad \iint f \phi_{(i,j)} dA = - \nu \iint \nabla \phi_{(i,j)} \cdot \nabla \psi dA,
+\end{align} where $dA = J d\alpha d\beta$.  After some manipulation,
+\begin{align}
+f_{(i,j)} &= \frac{1}{w_i J(\alpha_i, \beta_j)} \sum_{m=0}^{n_p-1} \pdiff{\tilde{\phi}_{(i)}}{\alpha} \left. \left[ g^{\alpha \alpha} \pdiff{\psi}{\alpha} + g^{\alpha \beta} \pdiff{\psi}{\beta} \right] J w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad + \frac{1}{w_j J(\alpha_i, \beta_j)} \sum_{n=0}^{n_p-1} \pdiff{\tilde{\phi}_{(j)}}{\beta} \left. \left[ g^{\beta \alpha} \pdiff{\psi}{\alpha} + g^{\beta \beta} \pdiff{\psi}{\beta} \right] J w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
+\end{align}  The derivatives of the scalar field $\psi$ are obtained in the usual manner,
+\begin{align}
+\left. \pdiff{\psi}{\alpha} \right\vert_{\alpha = \alpha_i, \beta = \beta_j} &= \sum_{m=0}^{n_p-1} \left. \psi_{(m,j)} \pdiff{\tilde{\phi}_{(m)}}{\alpha} \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \\
+\left. \pdiff{\psi}{\beta} \right\vert_{\alpha = \alpha_i, \beta = \beta_j} &= \sum_{n=0}^{n_p-1} \left. \psi_{(i,n)} \pdiff{\tilde{\phi}_{(n)}}{\beta} \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
+\end{align}
+
+\subsubsection{Vector Hyperviscosity}
+
+Fourth-order vector hyperviscosity is implemented using a two stage procedure:
+\begin{align}
+\vb{f} &= \mathcal{H}(1,1) \vb{u}^n, \\
+\vb{u}^{n+1} &= \vb{u}^n - \Delta t \mathcal{H}(\nu_d, \nu_v) \vb{f}.
+\end{align}  The vector hyperviscosity operator is defined implicitly via
+\begin{align}
+\vb{f} = \mathcal{H}(\nu_d, \nu_v) \vb{u^n} \quad \Longleftrightarrow \quad \iint \vb{f} \cdot \vg{\phi} dA = \iint \nu_d (\nabla \cdot \vg{\phi}) (\nabla \cdot \vb{u}^n) + \nu_v (\nabla \times \vg{\phi})^r (\nabla \times \vb{u}^n)_r dA,
+\end{align} where $dA = J d\alpha d\beta$ and
+\begin{align}
+(\nabla \cdot \vg{\phi}) &= g^{p q} \nabla_p \phi_q = \frac{1}{J} \pdiff{}{\alpha} \left( J g^{\alpha \alpha} \phi_\alpha + J g^{\alpha \beta} \phi_\beta \right) + \frac{1}{J} \pdiff{}{\beta} \left( J g^{\beta \alpha} \phi_\alpha + J g^{\beta \beta} \phi_\beta \right), \\
+%(\nabla \cdot \vg{\phi}) &= g^{p q} \nabla_p \phi_q \\
+%&= g^{\alpha \alpha} \nabla_\alpha \phi_\alpha + g^{\beta \alpha} \nabla_\beta \phi_\alpha + g^{\alpha \beta} \nabla_\alpha \phi_\beta + g^{\beta \beta} \nabla_\beta \phi_\beta \\
+%&= g^{\alpha \alpha} \left[ \pdiff{\phi_\alpha}{\alpha} - \Gamma^{\alpha}_{\ \alpha \alpha} \phi_\alpha - \Gamma^{\beta}_{\ \alpha \alpha} \phi_\beta \right] \\
+(\nabla \times \vg{\phi})^r &= \epsilon^{r p q} \nabla_p \phi_q = \epsilon^{r p q} \left[ \pdiff{\phi_q}{x^p} - \Gamma^{k}_{\ p q} \phi_k \right] = \frac{1}{J} \left[ \pdiff{\phi_\beta}{\alpha} - \pdiff{\phi_\alpha}{\beta} \right].
+\end{align}
+\begin{align}
+(\nabla \cdot \vb{u}) &= \nabla_p u^p = \nabla_\alpha u^\alpha + \nabla_\beta u^\beta, \\
+%\pdiff{u^\alpha}{\alpha} + \pdiff{u^\beta}{\beta} + (\Gamma^\alpha_{\ \alpha \alpha} + \Gamma^\beta_{\ \beta \alpha}) u^\alpha + (\Gamma^\alpha_{\ \alpha \beta} + \Gamma^\beta_{\ \beta \beta} ) u^\beta, \\
+(\nabla \times \vb{u})_r &= \epsilon_{rpq} g^{ps} \nabla_s u^q = J g^{\alpha \alpha} \nabla_\alpha u^\beta + J g^{\alpha \beta} \nabla_\beta u^\beta - J g^{\beta \alpha} \nabla_\alpha u^\alpha - J g^{\beta \beta} \nabla_\beta u^\alpha
+\end{align}
+
+\conclusions  %% \conclusions[modified heading if necessary]
+TEXT
+
+
+
+
+\appendix
+\section{\\ \\ \hspace*{-7mm} HEADING}    %% Appendix A
+
+
+\subsection{Terrain-Following Shallow-Atmosphere Cubed-Sphere Geometry}
+
+\begin{equation}
+g_{ij} = \frac{a^2 (1+X^2) (1+Y^2)}{\delta^4} \left( \begin{array}{ccc} 1+X^2 & - X Y & 0 \\[2.0ex] - X Y & 1+Y^2 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) + \left( \begin{array}{c} \pdiff{r}{\alpha} \\[2.0ex] \pdiff{r}{\beta} \\[2.0ex] \pdiff{r}{\xi} \end{array} \right) \left( \begin{array}{ccc} \pdiff{r}{\alpha} & \pdiff{r}{\beta} & \pdiff{r}{\xi} \end{array} \right)
+\end{equation}
+
+\begin{equation}
+J = \frac{1}{\delta^3} \left( \pdiff{r}{\xi} \right) a^2 (1+X^2) (1+Y^2)
+\end{equation}
+
+\begin{equation}
+g^{ij} = \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \begin{array}{ccc} 1+Y^2 & X Y & 0 \\[2.0ex] X Y & 1+X^2 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) + \tilde{g}^{ij},
+\end{equation}
+\begin{align}
+\tilde{g}^{\alpha \alpha} &= 0 \\
+\tilde{g}^{\alpha \beta} &= 0 \\
+\tilde{g}^{\beta \beta} &= 0 \\
+\tilde{g}^{\alpha \xi} &= - \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{r}{\xi} \right)^{-1} \left[ (1+Y^2) \left( \pdiff{r}{\alpha} \right) + X Y \left( \pdiff{r}{\beta} \right) \right] \\
+\tilde{g}^{\beta \xi} &= - \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{r}{\xi} \right)^{-1} \left[ X Y \left( \pdiff{r}{\alpha} \right) + (1+X^2) \left( \pdiff{r}{\beta} \right) \right] \\
+\tilde{g}^{\xi \xi} &= \left( \pdiff{r}{\xi} \right)^{-2} + \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{r}{\xi} \right)^{-2} \left[ (1+Y^2) \left( \pdiff{r}{\alpha} \right)^2 + 2 X Y \left( \pdiff{r}{\alpha} \right) \left( \pdiff{r}{\beta} \right) + (1+X^2) \left( \pdiff{r}{\beta} \right)^2 \right]
+\end{align}
+
+\begin{equation}
+\Gamma^{\alpha}_{\ i j} = \left( \begin{array}{ccc} \displaystyle \frac{2 X Y^2}{\delta^2} & \displaystyle - \frac{Y (1+Y^2)}{\delta^2} & 0 \\[2.0ex] \displaystyle - \frac{Y (1+Y^2)}{\delta^2} & 0 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) \qquad \Gamma^{\beta}_{\ i j} = \left( \begin{array}{ccc} \displaystyle 0 & \displaystyle - \frac{X (1+X^2)}{\delta^2} & 0 \\[2.0ex] \displaystyle - \frac{X (1+X^2)}{\delta^2} & \displaystyle \frac{2 X^2 Y}{\delta^2} & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right)
+\end{equation}
+
+\begin{equation}
+\Gamma^{\xi}_{\ i j} = \left( \pdiff{r}{\xi} \right)^{-1} \left( \begin{array}{ccc} \displaystyle - \frac{2 X Y^2}{\delta^2} \left( \pdiff{r}{\alpha} \right) + \left( \frac{\partial^2 r}{\partial \alpha^2} \right) & \displaystyle \frac{Y (1+Y^2)}{\delta^2} \left( \pdiff{r}{\alpha} \right) + \frac{X (1+X^2)}{\delta^2} \left( \pdiff{r}{\beta} \right) + \left( \frac{\partial^2 r}{\partial \alpha \partial \beta} \right) & \displaystyle \left( \frac{\partial^2 r}{\partial \alpha \partial \xi} \right) \\[4.0ex] \cdots & \displaystyle - \frac{2 X^2 Y}{\delta^2} \left( \pdiff{r}{\beta} \right) + \left( \frac{\partial^2 r}{\partial \beta^2} \right) & \displaystyle \left( \frac{\partial^2 r}{\partial \beta \partial \xi} \right) \\[4.0ex] \cdots & \cdots & \displaystyle \left( \frac{\partial^2 r}{\partial \xi^2} \right)  \end{array} \right)
+\end{equation}
+
+
+%\subsection                               %% Appendix A1, A2, etc.
+
+
+
+
+\begin{acknowledgements}
+TEXT
+\end{acknowledgements}
+
+
+\bibliography{TempestFrameworkBibliography}
+\bibliographystyle{copernicus}
+
+\end{document}
